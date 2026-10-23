@@ -9,6 +9,8 @@ let t0 = 0;
 let timestamp;
 let global_acc = 0.001;
 
+
+
 function init() {
     info = document.createElement("div");
     info.id = "info";
@@ -36,7 +38,7 @@ function init() {
     // --- Sistema Solar ---------------------------------------------
     stars(300, 100, 500);
     sun();
-    planet(0.5, 4, 1, 0x2266ff, 1, 0.8);
+    planet(1, 12, 1, 0x2266ff, 1, 0.98);
 
     t0 = Date.now();
 }
@@ -96,7 +98,7 @@ function spotLight(px, py, pz, color, intensity) {
 }
 
 function sun() {
-    sphere(0, 0, 0, 2, 20, 20, 0xffdd00);
+    sphere(0, 0, 0, 5, 25, 25, 0xffdd00);
     spotLight(0, 0, 0, 0xffffff, 1);
 }
 
