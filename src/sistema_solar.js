@@ -9,6 +9,18 @@ let t0 = 0;
 let timestamp;
 let global_acc = 0.001;
 
+// --- Escalas -------------------------------------------------------
+const SUN_RADIUS = 5;
+const SUN_RADIUS_KM =  696340;
+
+const SIZE_EXP = 0.5;
+const DISTANCE_EXP = 0.5;
+
+const DISTANCE_SCALE = SUN_RADIUS;
+const ORBIT_OFFSET = SUN_RADIUS * 1.5;
+const ECCENTRICITY_BOOST = 1.5;
+// ------------------------------------------------------------------
+
 const PLANET_DATA = [
     { name: "Mercurio", km: 2440,  au: 0.387, ecc: 0.2056, color: 0xb1b1b1, period: 0.241 },
     { name: "Venus",    km: 6052,  au: 0.723, ecc: 0.0068, color: 0xe8c07a, period: 0.615 },
@@ -19,6 +31,7 @@ const PLANET_DATA = [
     { name: "Urano",    km: 25362, au: 19.19, ecc: 0.0457, color: 0x9fd7e0, period: 84.01 },
     { name: "Neptuno",  km: 24622, au: 30.07, ecc: 0.0113, color: 0x3a5fcd, period: 164.8 }
 ]
+
 
 function init() {
     info = document.createElement("div");
@@ -52,6 +65,7 @@ function init() {
     t0 = Date.now();
 }
 
+
 function animationLoop() {
     timestamp = (Date.now() - t0) * global_acc;
     requestAnimationFrame(animationLoop);
@@ -64,10 +78,12 @@ function animationLoop() {
     renderer.render(scene, camera);
 }
 
+
 function ambientLight() {
     const Lamb = new THREE.AmbientLight(0xffffff, 0.25);
     scene.add(Lamb);
 }
+
 
 function spotLight(px, py, pz, color, intensity) {
     // color, intensidad, distancia máxima, decaimiento
@@ -80,6 +96,7 @@ function spotLight(px, py, pz, color, intensity) {
     scene.add(LpuntHelper); /**/
 }
 
+
 function sphere(px, py, pz, radio, nx, ny, col) {
     let mesh = new THREE.Mesh(
         new THREE.SphereBufferGeometry(radio, nx, ny),
@@ -89,12 +106,12 @@ function sphere(px, py, pz, radio, nx, ny, col) {
     return mesh;
 }
 
+
 function createSun() {
     scene.add(sphere(0, 0, 0, SUN_RADIUS, 25, 25, 0xffdd00));
     spotLight(0, 0, 0, 0xffffff, 1);
 }
 
-const ECCENTRICITY_BOOST = 1.5;
 
 function createPlanets() {
     for (const p of PLANET_DATA) {
@@ -110,6 +127,7 @@ function createPlanets() {
         );
     }
 }
+
 
 function createPlanet(r, d, v, color, f1, f2) {
     let planet = new THREE.Mesh(
@@ -144,6 +162,7 @@ function getPlanetY(p, t) {
     return Math.sin(t * p.userData.speed) * p.userData.f2 * p.userData.dist;
 }
 
+
 function createStars(n, gap, extent) {
     let count = 0
     while (count < n) {
@@ -160,16 +179,6 @@ function createStars(n, gap, extent) {
 }
 
 
-// --- Escalas ---------------------------------------------------
-const SUN_RADIUS = 5;
-const SUN_RADIUS_KM =  696340;
-
-const SIZE_EXP = 0.5;
-const DISTANCE_EXP = 0.5;
-
-const DISTANCE_SCALE = SUN_RADIUS;
-const ORBIT_OFFSET = SUN_RADIUS * 1.5;
-
 function getPlanetRadius(km) {
     return SUN_RADIUS * Math.pow(km / SUN_RADIUS_KM, SIZE_EXP);
 }
@@ -177,7 +186,6 @@ function getPlanetRadius(km) {
 function getOrbitDistance(au) {
     return ORBIT_OFFSET + DISTANCE_SCALE * Math.pow(au, DISTANCE_EXP);
 }
-// ------------------------------------------------------------------
 
 
 init();
