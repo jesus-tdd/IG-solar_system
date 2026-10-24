@@ -3,13 +3,22 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 let scene, renderer, info;
 let camera, camcontrols;
-let objects = [], planets = [];
+let planets = [];
 let shadows = false;
 let t0 = 0;
 let timestamp;
 let global_acc = 0.001;
 
-
+const PLANET_DATA = [
+    { name: "Mercurio", km: 2440,  au: 0.387, ecc: 0.2056, color: 0xb1b1b1, period: 0.241 },
+    { name: "Venus",    km: 6052,  au: 0.723, ecc: 0.0068, color: 0xe8c07a, period: 0.615 },
+    { name: "Tierra",   km: 6371,  au: 1.000, ecc: 0.0167, color: 0x2266ff, period: 1.000 },
+    { name: "Marte",    km: 3390,  au: 1.524, ecc: 0.0934, color: 0xc1440e, period: 1.881 },
+    { name: "Júpiter",  km: 69911, au: 5.203, ecc: 0.0489, color: 0xd8a577, period: 11.86 },
+    { name: "Saturno",  km: 58232, au: 9.537, ecc: 0.0565, color: 0xe3d29a, period: 29.46 },
+    { name: "Urano",    km: 25362, au: 19.19, ecc: 0.0457, color: 0x9fd7e0, period: 84.01 },
+    { name: "Neptuno",  km: 24622, au: 30.07, ecc: 0.0113, color: 0x3a5fcd, period: 164.8 }
+]
 
 function init() {
     info = document.createElement("div");
@@ -36,11 +45,10 @@ function init() {
     ambientLight();
     
     // --- Sistema Solar ---------------------------------------------
-    generateStars(300, 100, 500);
-    generateSun();
-    generatePlanet(getPlanetRadius(6371), getOrbitDistance(1), 1, 0x2266ff, 1, 0.97);     // Tierra
-    generatePlanet(getPlanetRadius(2240), getOrbitDistance(0.387), 1.6, 0xaaaaaa, 1, 0.98); // Mercurio
-    
+    createStars(300, 100, 500);
+    createSun();
+    createPlanets();
+
     t0 = Date.now();
 }
 
@@ -81,12 +89,29 @@ function sphere(px, py, pz, radio, nx, ny, col) {
     return mesh;
 }
 
-function generateSun() {
+function createSun() {
     scene.add(sphere(0, 0, 0, SUN_RADIUS, 25, 25, 0xffdd00));
     spotLight(0, 0, 0, 0xffffff, 1);
 }
 
-function generatePlanet(r, d, v, color, f1, f2) {
+const ECCENTRICITY_BOOST = 1.5;
+
+function createPlanets() {
+    for (const p of PLANET_DATA) {
+        const e = Math.min(p.ecc * ECCENTRICITY_BOOST, 0.95);
+        const f1 = 1;
+        const f2 = Math.sqrt(1 - e*e);
+        createPlanet(
+            getPlanetRadius(p.km),
+            getOrbitDistance(p.au),
+            1/p.period,
+            p.color,
+            f1, f2
+        );
+    }
+}
+
+function createPlanet(r, d, v, color, f1, f2) {
     let planet = new THREE.Mesh(
         new THREE.SphereGeometry(r, 20, 20),
         new THREE.MeshPhongMaterial({color: color})
@@ -119,7 +144,7 @@ function getPlanetY(p, t) {
     return Math.sin(t * p.userData.speed) * p.userData.f2 * p.userData.dist;
 }
 
-function generateStars(n, gap, extent) {
+function createStars(n, gap, extent) {
     let count = 0
     while (count < n) {
         const x = (Math.random() * 2 - 1) * extent;
