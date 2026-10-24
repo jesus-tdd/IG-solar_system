@@ -19,6 +19,10 @@ const DISTANCE_EXP = 0.5;
 const DISTANCE_SCALE = SUN_RADIUS;
 const ORBIT_OFFSET = SUN_RADIUS * 1.5;
 const ECCENTRICITY_BOOST = 1.5;
+
+const MOON_SIZE_BOOST = 1.5;
+const MOON_MIN_RADIUS = 0.08;
+const ORBIT_MARGIN = 1;
 // ------------------------------------------------------------------
 
 const PLANET_DATA = [
@@ -32,6 +36,18 @@ const PLANET_DATA = [
     { name: "Neptuno",  km: 24622, au: 30.07, ecc: 0.0113, color: 0x3a5fcd, period: 164.8 }
 ]
 
+const MOON_DATA = {
+    Tierra:  [{ km: 1737, k: 2.5, period: 0.0748, color: 0xcccccc }],   // Luna
+    Marte:   [{ km: 11,   k: 2.0, period: 0.0009, color: 0x998877 },    // Fobos
+              { km: 6,    k: 3.0, period: 0.0035, color: 0x887766 }],   // Deimos
+    Júpiter: [{ km: 1821, k: 1.8, period: 0.0048, color: 0xe8d070 },    // Ío
+              { km: 1561, k: 2.3, period: 0.0097, color: 0xc9b79c },    // Europa
+              { km: 2634, k: 2.9, period: 0.0196, color: 0x9c8f7a },    // Ganímedes
+              { km: 2410, k: 3.6, period: 0.0457, color: 0x7a6e60 }],   // Calisto
+    Saturno: [{ km: 2575, k: 2.8, period: 0.0437, color: 0xd9a441 }],   // Titán
+    Urano:   [{ km: 788,  k: 2.2, period: 0.0069, color: 0xaaaaaa }],   // Titania
+    Neptuno: [{ km: 1353, k: 2.5, period: 0.0161, color: 0xbbbbcc }],   // Tritón
+};
 
 function init() {
     info = document.createElement("div");
@@ -58,9 +74,9 @@ function init() {
     ambientLight();
     
     // --- Sistema Solar ---------------------------------------------
-    createStars(300, 100, 500);
     createSun();
-    createPlanets();
+    const lastD = createPlanets();
+    createStars(300, lastD*1.5, lastD*4);
 
     t0 = Date.now();
 }
@@ -73,6 +89,11 @@ function animationLoop() {
     for (let planet of planets) {
         planet.position.x = getPlanetX(planet, timestamp);
         planet.position.y = getPlanetY(planet, timestamp);
+
+        for (let moon of planet.userData.moons) {
+            moon.position.x = Math.cos(timestamp * moon.userData.speed) * moon.userData.dist;
+            moon.position.y = Math.sin(timestamp * moon.userData.speed) * moon.userData.dist;
+        }
     }
     
     renderer.render(scene, camera);
@@ -114,18 +135,33 @@ function createSun() {
 
 
 function createPlanets() {
+    let prevD = 0, prevReach = 0;
+
     for (const p of PLANET_DATA) {
+        const moonsData = MOON_DATA[p.name] || [];
+
+        const r = getPlanetRadius(p.km);
+        const reach = Math.max(     // lo que ocupará el planeta con sus lunas
+            r,
+            ...moonsData.map(m => r * m.k + moonRadius(m.km))
+        );
+
+        let d = getOrbitDistance(p.au);
+        if (prevD > 0) d = Math.max(d, prevD + prevReach + reach + ORBIT_MARGIN);  // si la órbita está muy pegada a la anterior, se separa
+
         const e = Math.min(p.ecc * ECCENTRICITY_BOOST, 0.95);
         const f1 = 1;
         const f2 = Math.sqrt(1 - e*e);
-        createPlanet(
-            getPlanetRadius(p.km),
-            getOrbitDistance(p.au),
-            1/p.period,
-            p.color,
-            f1, f2
-        );
+        
+        const mesh = createPlanet(r, d, 1/p.period, p.color, f1, f2);
+
+        mesh.userData.moons = [];
+        for (const m of moonsData) createMoon(mesh, m);
+
+        prevD = d;
+        prevReach = reach;
     }
+    return prevD // distancia del planeta más lejano
 }
 
 
@@ -152,6 +188,8 @@ function createPlanet(r, d, v, color, f1, f2) {
         new THREE.LineBasicMaterial({color:0xffffff})
     );
     scene.add(orbita);
+
+    return planet;
 }
 
 function getPlanetX(p, t) {
@@ -162,6 +200,20 @@ function getPlanetY(p, t) {
     return Math.sin(t * p.userData.speed) * p.userData.f2 * p.userData.dist;
 }
 
+function createMoon(parent, moon) {
+    const mesh = new THREE.Mesh(
+        new THREE.SphereBufferGeometry(moonRadius(moon.km), 15, 15),
+        new THREE.MeshPhongMaterial({color: moon.color})
+    );
+    mesh.userData.dist = parent.geometry.parameters.radius * moon.k;
+    mesh.userData.speed = Math.sqrt(1 / moon.period);
+    parent.add(mesh);
+    parent.userData.moons.push(mesh);
+}
+
+function moonRadius(km) {
+    return Math.max(getPlanetRadius(km) * MOON_SIZE_BOOST, MOON_MIN_RADIUS);
+}
 
 function createStars(n, gap, extent) {
     let count = 0
