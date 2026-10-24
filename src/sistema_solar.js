@@ -36,10 +36,10 @@ function init() {
     ambientLight();
     
     // --- Sistema Solar ---------------------------------------------
-    stars(300, 100, 500);
-    sun();
-    planet(getPlanetRadius(6371), getOrbitDistance(1), 1, 0x2266ff, 1, 0.97);     // Tierra
-    planet(getPlanetRadius(2240), getOrbitDistance(0.387), 1.6, 0xaaaaaa, 1, 0.98); // Mercurio
+    generateStars(300, 100, 500);
+    generateSun();
+    generatePlanet(getPlanetRadius(6371), getOrbitDistance(1), 1, 0x2266ff, 1, 0.97);     // Tierra
+    generatePlanet(getPlanetRadius(2240), getOrbitDistance(0.387), 1.6, 0xaaaaaa, 1, 0.98); // Mercurio
     
     t0 = Date.now();
 }
@@ -54,32 +54,6 @@ function animationLoop() {
     }
     
     renderer.render(scene, camera);
-}
-
-function sphere(px, py, pz, radio, nx, ny, col) {
-    let mesh = new THREE.Mesh(
-        new THREE.SphereBufferGeometry(radio, nx, ny),
-        new THREE.MeshBasicMaterial({color: col})
-    );
-    mesh.position.set(px, py, pz);
-    
-    if (shadows) mesh.castShadow = true;
-    
-    scene.add(mesh);
-    objects.push(mesh);
-}
-
-function spherePhong(px, py, pz, radio, nx, ny, col) {
-    let mesh = new THREE.Mesh(
-        new THREE.SphereBufferGeometry(radio, nx, ny),
-        new THREE.MeshPhongMaterial({color: col})
-    );
-    mesh.position.set(px, py, pz);
-    
-    if (shadows) mesh.castShadow = true;
-    
-    scene.add(mesh);
-    objects.push(mesh);
 }
 
 function ambientLight() {
@@ -98,12 +72,21 @@ function spotLight(px, py, pz, color, intensity) {
     scene.add(LpuntHelper); /**/
 }
 
-function sun() {
-    sphere(0, 0, 0, SUN_RADIUS, 25, 25, 0xffdd00);
+function sphere(px, py, pz, radio, nx, ny, col) {
+    let mesh = new THREE.Mesh(
+        new THREE.SphereBufferGeometry(radio, nx, ny),
+        new THREE.MeshBasicMaterial({color: col})
+    );
+    mesh.position.set(px, py, pz);
+    return mesh;
+}
+
+function generateSun() {
+    scene.add(sphere(0, 0, 0, SUN_RADIUS, 25, 25, 0xffdd00));
     spotLight(0, 0, 0, 0xffffff, 1);
 }
 
-function planet(r, d, v, color, f1, f2) {
+function generatePlanet(r, d, v, color, f1, f2) {
     let planet = new THREE.Mesh(
         new THREE.SphereGeometry(r, 20, 20),
         new THREE.MeshPhongMaterial({color: color})
@@ -136,7 +119,7 @@ function getPlanetY(p, t) {
     return Math.sin(t * p.userData.speed) * p.userData.f2 * p.userData.dist;
 }
 
-function stars(n, gap, extent) {
+function generateStars(n, gap, extent) {
     let count = 0
     while (count < n) {
         const x = (Math.random() * 2 - 1) * extent;
@@ -146,7 +129,7 @@ function stars(n, gap, extent) {
         const d = Math.sqrt(x * x + y * y + z * z);
         if (d < gap || d > extent) continue;
 
-        sphere(x,y, z, 1, 5, 5, 0xffffff);
+        scene.add(sphere(x,y, z, 1, 5, 5, 0xffffff));
         count++;
     }
 }
@@ -169,7 +152,7 @@ function getPlanetRadius(km) {
 function getOrbitDistance(au) {
     return ORBIT_OFFSET + DISTANCE_SCALE * Math.pow(au, DISTANCE_EXP);
 }
-
+// ------------------------------------------------------------------
 
 
 init();
