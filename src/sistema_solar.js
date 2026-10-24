@@ -38,8 +38,9 @@ function init() {
     // --- Sistema Solar ---------------------------------------------
     stars(300, 100, 500);
     sun();
-    planet(1, 12, 1, 0x2266ff, 1, 0.98);
-
+    planet(getPlanetRadius(6371), getOrbitDistance(1), 1, 0x2266ff, 1, 0.97);     // Tierra
+    planet(getPlanetRadius(2240), getOrbitDistance(0.387), 1.6, 0xaaaaaa, 1, 0.98); // Mercurio
+    
     t0 = Date.now();
 }
 
@@ -51,7 +52,7 @@ function animationLoop() {
         planet.position.x = getPlanetX(planet, timestamp);
         planet.position.y = getPlanetY(planet, timestamp);
     }
-
+    
     renderer.render(scene, camera);
 }
 
@@ -98,7 +99,7 @@ function spotLight(px, py, pz, color, intensity) {
 }
 
 function sun() {
-    sphere(0, 0, 0, 5, 25, 25, 0xffdd00);
+    sphere(0, 0, 0, SUN_RADIUS, 25, 25, 0xffdd00);
     spotLight(0, 0, 0, 0xffffff, 1);
 }
 
@@ -111,10 +112,10 @@ function planet(r, d, v, color, f1, f2) {
     planet.userData.speed = v;
     planet.userData.f1 = f1;
     planet.userData.f2 = f2;
-
+    
     planets.push(planet);
     scene.add(planet);
-
+    
     let curve = new THREE.EllipseCurve(
         0, 0,       // centro
         d*f1, d*f2  // radios
@@ -149,6 +150,27 @@ function stars(n, gap, extent) {
         count++;
     }
 }
+
+
+// --- Escalas ---------------------------------------------------
+const SUN_RADIUS = 5;
+const SUN_RADIUS_KM =  696340;
+
+const SIZE_EXP = 0.5;
+const DISTANCE_EXP = 0.5;
+
+const DISTANCE_SCALE = SUN_RADIUS;
+const ORBIT_OFFSET = SUN_RADIUS * 1.5;
+
+function getPlanetRadius(km) {
+    return SUN_RADIUS * Math.pow(km / SUN_RADIUS_KM, SIZE_EXP);
+}
+
+function getOrbitDistance(au) {
+    return ORBIT_OFFSET + DISTANCE_SCALE * Math.pow(au, DISTANCE_EXP);
+}
+
+
 
 init();
 animationLoop();    
