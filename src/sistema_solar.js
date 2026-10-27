@@ -4,7 +4,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 let scene, renderer, info;
 let camera, camcontrols;
 let planets = [];
-let shadows = false;
+let shadows = true;
 let t0 = 0;
 let timestamp;
 let global_acc = 0.001;
@@ -28,7 +28,7 @@ const ORBIT_MARGIN = 1;
 const PLANET_DATA = [
     { name: "Mercurio", km: 2440,  au: 0.387, ecc: 0.2056, color: 0xb1b1b1, period: 0.241 },
     { name: "Venus",    km: 6052,  au: 0.723, ecc: 0.0068, color: 0xe8c07a, period: 0.615 },
-    { name: "Tierra",   km: 6371,  au: 1.000, ecc: 0.0167, color: 0x2266ff, period: 1.000 },
+    { name: "Tierra",   km: 6371,  au: 1.000, ecc: 0.0167, color: 0x2266ff, period: 1.000, texture: require("./earthmap1k.jpg"), texbump: require("./earthbump1k.jpg"), texspec: require("./earthspec1k.jpg")},
     { name: "Marte",    km: 3390,  au: 1.524, ecc: 0.0934, color: 0xc1440e, period: 1.881 },
     { name: "Júpiter",  km: 69911, au: 5.203, ecc: 0.0489, color: 0xd8a577, period: 11.86 },
     { name: "Saturno",  km: 58232, au: 9.537, ecc: 0.0565, color: 0xe3d29a, period: 29.46 },
@@ -66,6 +66,8 @@ function init() {
 
     renderer = new THREE.WebGLRenderer();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = shadows;
+    if (shadows) renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
     camcontrols = new OrbitControls(camera, renderer.domElement);
@@ -153,7 +155,10 @@ function createPlanets() {
         const f1 = 1;
         const f2 = Math.sqrt(1 - e*e);
         
-        const mesh = createPlanet(r, d, 1/p.period, p.color, f1, f2);
+        const texture = p.texture || undefined;
+        const texbump = p.texbump || undefined;
+        const texspec = p.texspec || undefined;
+        const mesh = createPlanet(r, d, 1/p.period, p.color, f1, f2, texture, texbump, texspec);
 
         mesh.userData.moons = [];
         for (const m of moonsData) createMoon(mesh, m);
@@ -165,10 +170,27 @@ function createPlanets() {
 }
 
 
-function createPlanet(r, d, v, color, f1, f2) {
+function createPlanet(r, d, v, color, f1, f2, texture=undefined, texbump=undefined, texspec=undefined) {
+    let material = new THREE.MeshPhongMaterial({color: texture? 0xffffff : color});
+    
+    if (texture != undefined) {
+        material.map = new THREE.TextureLoader().load(texture);
+    }
+
+    if (texbump != undefined) {
+        material.bumpMap = new THREE.TextureLoader().load(texbump);
+        material.bumpScale = 1;
+    }
+
+    if (texspec != undefined) {
+        material.specularMap = new THREE.TextureLoader().load(texspec);
+        material.specular = new THREE.Color("orange");
+    }
+
+    
     let planet = new THREE.Mesh(
         new THREE.SphereGeometry(r, 20, 20),
-        new THREE.MeshPhongMaterial({color: color})
+        material
     );
     planet.userData.dist = d;
     planet.userData.speed = v;
