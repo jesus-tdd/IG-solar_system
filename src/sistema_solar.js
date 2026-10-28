@@ -9,6 +9,15 @@ let t0 = 0;
 let timestamp;
 let global_acc = 0.001;
 
+// --- Vista en primera persona (nave) ---------------------------------
+let shipCamera, activeCamera;
+const keys = {};
+const ship = { yaw: Math.PI / 2, pitch: -0.1 };
+const SHIP_SPEED = 10;   // unidades/segundo
+const SHIP_TURN = 1.5;   // radianes/segundo
+let lastFrame = 0;
+// ------------------------------------------------------------------
+
 // --- Escalas -------------------------------------------------------
 const SUN_RADIUS = 5;
 const SUN_RADIUS_KM =  696340;
@@ -80,13 +89,76 @@ function init() {
     const lastD = createPlanets();
     createStars(300, lastD*1.5, lastD*4);
 
+    // --- Vista general: abarca todo el sistema ----------------------
+    camera.position.set(0, -lastD * 1.1, lastD * 0.8);
+    camcontrols.update();
+
+    // --- Vista en primera persona (el plano orbital es XY, "arriba" es Z)
+    shipCamera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+    );
+    shipCamera.up.set(0, 0, 1);
+    shipCamera.position.set(0, -lastD * 0.6, 3);
+    activeCamera = camera;
+
+    window.addEventListener("keydown", e => {
+        keys[e.code] = true;
+        if (e.code === "KeyC") toggleView();
+    });
+    window.addEventListener("keyup", e => { keys[e.code] = false; });
+
+    info.innerHTML = "Vista general | C: vista nave";
+
+    lastFrame = Date.now();
     t0 = Date.now();
 }
 
 
+function toggleView() {
+    const toShip = activeCamera !== shipCamera;
+    activeCamera = toShip ? shipCamera : camera;
+    camcontrols.enabled = !toShip;
+    info.innerHTML = toShip
+        ? "Vista nave | WASD: mover, flechas: mirar, Shift: turbo, C: vista general"
+        : "Vista general | C: vista nave";
+}
+
+
+function updateShip(dt) {
+    if (keys.ArrowLeft)  ship.yaw   += SHIP_TURN * dt;
+    if (keys.ArrowRight) ship.yaw   -= SHIP_TURN * dt;
+    if (keys.ArrowUp)    ship.pitch += SHIP_TURN * dt;
+    if (keys.ArrowDown)  ship.pitch -= SHIP_TURN * dt;
+    ship.pitch = Math.max(-1.5, Math.min(1.5, ship.pitch));
+
+    const dir = new THREE.Vector3(
+        Math.cos(ship.pitch) * Math.cos(ship.yaw),
+        Math.cos(ship.pitch) * Math.sin(ship.yaw),
+        Math.sin(ship.pitch)
+    );
+    const right = new THREE.Vector3().crossVectors(dir, shipCamera.up).normalize();
+    const step = SHIP_SPEED * (keys.ShiftLeft || keys.ShiftRight ? 4 : 1) * dt;
+
+    if (keys.KeyW) shipCamera.position.addScaledVector(dir, step);
+    if (keys.KeyS) shipCamera.position.addScaledVector(dir, -step);
+    if (keys.KeyD) shipCamera.position.addScaledVector(right, step);
+    if (keys.KeyA) shipCamera.position.addScaledVector(right, -step);
+
+    shipCamera.lookAt(shipCamera.position.clone().add(dir));
+}
+
+
 function animationLoop() {
-    timestamp = (Date.now() - t0) * global_acc;
+    const now = Date.now();
+    const dt = (now - lastFrame) / 1000;
+    lastFrame = now;
+    timestamp = (now - t0) * global_acc;
     requestAnimationFrame(animationLoop);
+
+    updateShip(dt);
     
     for (let planet of planets) {
         planet.position.x = getPlanetX(planet, timestamp);
@@ -98,7 +170,7 @@ function animationLoop() {
         }
     }
     
-    renderer.render(scene, camera);
+    renderer.render(scene, activeCamera);
 }
 
 
@@ -263,4 +335,4 @@ function getOrbitDistance(au) {
 
 
 init();
-animationLoop();    
+animationLoop();
