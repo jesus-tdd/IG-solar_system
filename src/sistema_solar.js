@@ -261,7 +261,7 @@ function createPlanet(r, d, v, color, f1, f2, texture=undefined, texbump=undefin
 
     
     let planet = new THREE.Mesh(
-        new THREE.SphereGeometry(r, 20, 20),
+        new THREE.SphereGeometry(r, 20, 20).rotateX(Math.PI / 2),
         material
     );
     planet.userData.dist = d;
