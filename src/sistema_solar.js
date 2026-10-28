@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
-let scene, renderer, info;
+let scene, renderer, info, controlsPanel;
 let camera, camcontrols;
 let planets = [];
 let shadows = true;
@@ -59,10 +59,16 @@ const MOON_DATA = {
 };
 
 function init() {
+    // Panel superior: info (el estilo lo da tu CSS)
     info = document.createElement("div");
     info.id = "info";
     info.innerHTML = "sistema solar";
     document.body.appendChild(info);
+
+    // Panel inferior: controles
+    controlsPanel = document.createElement("div");
+    controlsPanel.id = "controls";
+    document.body.appendChild(controlsPanel);
 
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(
@@ -110,7 +116,7 @@ function init() {
     });
     window.addEventListener("keyup", e => { keys[e.code] = false; });
 
-    info.innerHTML = "Vista general | C: vista nave";
+    updateControls();
 
     lastFrame = Date.now();
     t0 = Date.now();
@@ -121,9 +127,27 @@ function toggleView() {
     const toShip = activeCamera !== shipCamera;
     activeCamera = toShip ? shipCamera : camera;
     camcontrols.enabled = !toShip;
-    info.innerHTML = toShip
-        ? "Vista nave | WASD: mover, flechas: mirar, Shift: turbo, C: vista general"
-        : "Vista general | C: vista nave";
+    updateControls();
+}
+
+
+function updateControls() {
+    const toShip = activeCamera === shipCamera;
+    const title = toShip ? "Vista nave" : "Vista general";
+    const rows = toShip
+        ? [["W / S", "Avanzar / retroceder"],
+           ["A / D", "Izquierda / derecha"],
+           ["Flechas", "Girar cámara"],
+           ["Shift", "Turbo"],
+           ["C", "Vista general"]]
+        : [["Ratón", "Orbitar, zoom y desplazar"],
+           ["C", "Vista nave"]];
+
+    controlsPanel.innerHTML =
+        `<div class="controls-title">${title}</div>` +
+        rows.map(([k, d]) =>
+            `<div class="controls-row"><span class="controls-key">${k}</span>${d}</div>`
+        ).join("");
 }
 
 
